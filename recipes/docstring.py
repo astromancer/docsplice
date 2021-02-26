@@ -6,7 +6,7 @@ import re
 from recipes.lists import index
 import warnings
 from numpydoc.docscrape import NumpyDocString
-from recipes.string import iter_brackets, replace
+from recipes.string import replace
 
 
 TAB = ' ' * 4
