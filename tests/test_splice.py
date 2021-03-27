@@ -8,15 +8,15 @@ from pathlib import Path
 # ---------------------------------------------------------------------------- #
 # Example from README
 
-RGX_EXAMPLE = re.compile('(?s)Basic Example:\n```python\n(.+?)```')
+RGX_EXAMPLE = re.compile(r'(?s)```python\s+(.+?)```')
 README = '../README.md'
 
 def get_readme_example(filename):
     readme = Path(filename).read_text()
     code = RGX_EXAMPLE.search(readme)
-    locals = {}
-    exec(code, None, locals)
-    return locals['combined']
+    locals_ = {}
+    exec(code[1], None, locals_)
+    return locals_['combined']
 
 @pytest.fixture
 def readme_example():
@@ -24,9 +24,17 @@ def readme_example():
 
 
 def test_readme_example(readme_example):
-    print(readme_example.__doc__) #== \
-    # """
-    # """
+    assert readme_example.__doc__ == \
+    """
+    Some profound computation. Parameter descriptions follow:
+
+    Parameters
+    ----------
+    a : int
+        The number.
+    n : int, optional
+        Another number! By default 7.
+    """
     
     
 # ---------------------------------------------------------------------------- #
@@ -34,7 +42,7 @@ def test_readme_example(readme_example):
 
 def subroutine1(a, b):
     """
-    This is just a test. The next paragraph is just psuedo philosophic giberish 
+    This is just a test. The next paragraph is just psuedo philosophic giberish
     for the sake of example.
 
     As any dedicated reader can clearly see, the Ideal of practical reason is a
@@ -126,11 +134,11 @@ class Brackets:
 
         Parameters
         ----------
-        string : str 
-            The string to parse. 
-        return_index : bool 
-            Whether to return the indices where the brackets where found. 
-        must_close : int 
+        string : str
+            The string to parse.
+        return_index : bool
+            Whether to return the indices where the brackets where found.
+        must_close : int
             Controls behaviour on unmatched bracket pairs. If 1 or True a
             ValueError will be raised, if 0 or False `None` will be returned
             even if there is an opening bracket.  If -1, partial matches are
