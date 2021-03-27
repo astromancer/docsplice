@@ -64,6 +64,7 @@ class DocStringCache(defaultdict):
         super().__init__(NumpyDocString, *args, **kws)
 
     def __missing__(self, key):
+        # pylint: disable=not-callable
         new = self[key] = self.default_factory(key)
         return new
 
@@ -263,6 +264,7 @@ class splice:
         self.exception_hook = onfail
 
     def __call__(self, func):
+        # pylint: disable=broad-except
         try:
             return self.splice(func)
         except Exception as err:
