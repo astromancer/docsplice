@@ -135,19 +135,18 @@ class Directive:
         self.__dict__.update(**parts)
         section, key, attr = self.section, self.key, self.attr
         self.section = section.title()
-        if not self.section in NumpyDocString.sections:
+        if self.section not in NumpyDocString.sections:
 
             raise ValueError(f'{self.section} is not a valid section name.')
 
-        if section not in LISTED_SECTIONS:
-            if key:
+        if section not in LISTED_SECTIONS and key:
+            warnings.warn(
+                f'{section!r} section is not a itemized section, yet item '
+                f'{key!r} has been requested.')
+            if attr:
                 warnings.warn(
-                    f'{section!r} section is not a itemized section, yet item '
-                    f'{key!r} has been requested.')
-                if attr:
-                    warnings.warn(
-                        f'Attribute {attr!r} of item {key!r} in section '
-                        f'{section!r} does not exist')
+                    f'Attribute {attr!r} of item {key!r} in section '
+                    f'{section!r} does not exist')
 
     def __str__(self):
         return self.directive
@@ -171,11 +170,11 @@ class Directive:
             return directive
 
         part = parsed_doc[section]
-        formatter = FORMATTERS[section]
         takes_param = (section in LISTED_SECTIONS + STRING_SECTIONS)
         args = (parsed_doc, *(section, )[:takes_param])
 
         if not key:
+            formatter = FORMATTERS[section]
             return indented(formatter(*args), indent)
 
         has_items = (section in LISTED_SECTIONS)
@@ -186,7 +185,7 @@ class Directive:
 
         # check if item (parameter) available
         names = next(zip(*part))
-        if not key in names:
+        if key not in names:
             warnings.warn(f'Could not find {key!r} in section {section!r}')
             return directive
 
@@ -365,10 +364,7 @@ class splice:
         for directive, ifunc in self.insertion.items():
             if isinstance(ifunc, type):
                 ifunc = ifunc.__init__
-            if ifunc in idocs:
-                idoc = idocs[ifunc]
-            else:
-                idoc = NumpyDocString(ifunc.__doc__)
+            idoc = idocs.get(ifunc, NumpyDocString(ifunc.__doc__))
 
             directive = Directive.parse(directive)
             _, section, key, _, rename, _ = directive
