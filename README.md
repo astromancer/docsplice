@@ -15,7 +15,10 @@ convenient way using a functional decorator. This enables you to more easily
 create consistent documentation for your API without needing to duplicate
 docstring sections for functions that have the same parameter descriptions or
 other related content. This will ease the maintenance burden for your package
-documentation.
+documentation since the content of your function or class documentation  
+reside in a single location in the source code, instead of being duplicated 
+within each function body.
+
 
 # Install
 
@@ -86,11 +89,11 @@ Source:
              'Parameters[b] as n=7': fun2}) 
 def combined(a, n=7):
     """
-    Some significant text.
+    Some profound computation. Parameter descriptions follow:
     """
 ```
 
-For more examples see [Documentation]()
+<!-- For more examples see [Documentation]() -->
 
 <!-- # Documentation -->
 
@@ -106,7 +109,7 @@ pytest docsplice
 # Contribute
 Contributions are welcome!
 
-1. [Fork it!](https://github.com/astromancer/pyshoc/fork>)
+1. [Fork it!](https://github.com/astromancer/docsplice/fork>)
 2. Create your feature branch\
     ``git checkout -b feature/rad``
 3. Commit your changes\
@@ -124,7 +127,7 @@ Contributions are welcome!
 
 # License
 
-* see [LICENSE](https://github.com/astromancer/pyshoc/blob/master/LICENSE.txt)
+* see [LICENSE](https://github.com/astromancer/docsplice/blob/master/LICENSE.txt)
 
 <!-- 
 # Version
