@@ -1,30 +1,42 @@
-import pytest
-import docsplice as doc
+
+# std libs
 import re
+import textwrap as txw
 from pathlib import Path
 
+# third-party libs
+import pytest
+
+# local libs
+import docsplice as doc
 
 
 # ---------------------------------------------------------------------------- #
 # Example from README
 
-RGX_EXAMPLE = re.compile(r'(?s)```python\s+(.+?)```')
-README = '../README.md'
+RGX_EXAMPLE = re.compile(r'(?s)\n\s*```python\s+(.+?)```')
 
-def get_readme_example(filename):
+HERE = Path(__file__)
+README = HERE.parent.parent.absolute() / 'README.md'
+
+
+def get_readme_examples(filename=README):
+    # sourcery skip: hoist-statement-from-loop
     readme = Path(filename).read_text()
-    code = RGX_EXAMPLE.search(readme)
-    locals_ = {}
-    exec(code[1], None, locals_)
-    return locals_['combined']
+    for match in RGX_EXAMPLE.finditer(readme):
+        yield match[1]
+
 
 @pytest.fixture
 def readme_example():
-    return get_readme_example(README)
+    code = next(get_readme_examples())
+    locals_ = {}
+    exec(code, None, locals_)
+    return locals_['combined']
 
 
 def test_readme_example(readme_example):
-    assert readme_example.__doc__ == \
+    expected = txw.dedent(
     """
     Some profound computation. Parameter descriptions follow:
 
@@ -35,8 +47,11 @@ def test_readme_example(readme_example):
     n : int, optional
         Another number! By default 7.
     """
+    )
+    assert readme_example.__doc__ == expected
     
-    
+
+
 # ---------------------------------------------------------------------------- #
 
 
@@ -104,7 +119,7 @@ def subroutine2(a, b):
     """
 
 # def test_readme_example():
-    
+
 
 # ---------------------------------------------------------------------------- #
 # Stripped down examples from actual usage

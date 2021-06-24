@@ -383,6 +383,9 @@ class splice:
 
         # write the new docstring
         if (self.subs or self.insertion):
+            # NOTE: the string computed be =low will not be indented as is the
+            # case with docstrings that are directly defined in the source at
+            # function / class definition.
             func.__doc__ = str(doc)
         else:
             wrn.warn(
