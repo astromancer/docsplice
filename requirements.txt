@@ -1,0 +1,5 @@
+more_itertools
+numpy
+numpydoc
+pytest
+git+https://github.com/astromancer/recipes
