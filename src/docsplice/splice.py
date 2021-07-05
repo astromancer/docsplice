@@ -79,6 +79,9 @@ def indented(lines, indent=TAB):
 def format_param(name, kind, descr, indent=TAB):
     return indented([' : '.join((name, kind))] + descr, indent)
 
+def get_param_dict(doc):
+    return {p.name: p for p in doc['Parameters']}
+
 # def parse_examples # TODO
 
 
@@ -259,6 +262,8 @@ class splice:
         ----------
         from_func : callable or dict
             Function from which (parts of) the docstring will be copied.
+        *sections : str or tuple of str
+            Sections of the docstring that will be populated from `from_func`
         insert : dict, optional
             Mapping from directives to callables for inserting docstring
             sections from various other sources, by default None.
@@ -321,9 +326,9 @@ class splice:
 
         self.from_func = from_func
         self.origin = None      # parsed docstring of decorated function if any
-        self.subs = replace or {}
-        self.removal = (omit, ) if isinstance(omit, str) else tuple(omit)
-        self.insertion = insert
+        self.to_sub = replace or {}
+        self.to_omit = (omit, ) if isinstance(omit, str) else tuple(omit)
+        self.directives = insert
         self.exception_hook = onfail
 
     def __call__(self, func):
@@ -351,6 +356,7 @@ class splice:
         if docstring is None:
             # if decorated function has no docstring carbon copy the
             # docstring from input source
+            # sourcery skip: assign-if-exp, merge-else-if-into-elif
             if callable(self.from_func):
                 docstring = self.from_func.__doc__
             else:
@@ -361,28 +367,49 @@ class splice:
             # substitute them
             if callable(self.from_func):
                 # new = self.sub(docstring)
-                self.subs.update(get_subs(docstring, self.from_func))
-                if self.subs:
-                    new = sub(docstring, self.subs)
+                self.to_sub.update(get_subs(docstring, self.from_func))
+                if self.to_sub:
+                    new = sub(docstring, self.to_sub)
                     # TODO: do things in the order in which arguments were passed
                     if new == docstring:
                         wrn.warn('Docstring for function {func} identical '
                                  'after substitution')
                     docstring = new
+                # elif 'Parameters' in self.directives:
+                #     # no directives found in docstring. Fill parameters automatically
+                #     odoc = NumpyDocString(self.origin)
+                #     odoc['Parameters']
+
             else:
                 'multi-source without explicit mapping. might be ambiguous'
 
         # parse the update docstring
         doc = NumpyDocString(docstring)
 
-        # parse directives and insert
+        # Expand bare 'Parameters' directive to include parameters that are
+        # missing in the destination docstring, but are present in the source
+        # docstring. Below this will automatically populate the destination
+        # parameter info from that available from parent docstring without
+        # overwriting anything.
+        if 'Parameters' in self.directives:
+            from_func = self.directives['Parameters']
+            parsed_doc = docStringCache[from_func]
+            source = get_param_dict(parsed_doc)
+            dest = get_param_dict(doc)
+            for pname in func.__code__.co_varnames:
+                if pname not in dest and pname in source:
+                    self.directives[f'Parameters[{pname}]'] = from_func
+            
+            #print(self.directives)
+
+        # parse directives and insert new text
         doc = self.insert(func, doc)
 
         # remove omitted sections / parameters
         self.get_remove(self.from_func)
 
         # write the new docstring
-        if (self.subs or self.insertion):
+        if (self.to_sub or self.directives):
             # NOTE: the string computed be =low will not be indented as is the
             # case with docstrings that are directly defined in the source at
             # function / class definition.
@@ -398,12 +425,12 @@ class splice:
     #     # avoid circular import :|
     #     from recipes.string import sub
 
-    #     self.subs.update(get_subs(docstring, self.from_func))
-    #     return sub(docstring, self.subs)
+    #     self.to_sub.update(get_subs(docstring, self.from_func))
+    #     return sub(docstring, self.to_sub)
 
     def insert(self, func, doc):
 
-        for directive, ifunc in self.insertion.items():
+        for directive, ifunc in self.directives.items():
             if isinstance(ifunc, type):
                 ifunc = ifunc.__init__
 
@@ -423,8 +450,13 @@ class splice:
                 if section == 'Parameters':
                     # find position of new parameter and insert it in the list
                     par_names = func.__code__.co_varnames
-                    i = par_names.index(rename or key) - isinstance(func, type)
                     part = doc[section]
+                    # if rename or key not specified, populate automatically for
+                    # parameters that are missing in the destination docstring
+                    if not rename and not key:
+                        continue
+
+                    i = par_names.index(rename or key) - isinstance(func, type)
                     doc[section] = part[:i] + new + part[i:]
                 else:
                     doc[section].extend(new)
@@ -439,7 +471,7 @@ class splice:
         return doc
 
     def get_remove(self, from_func):
-        for directive in self.removal:
+        for directive in self.to_omit:
             directive = Directive.parse(directive)
-            to_remove = directive.get_sub(from_func)
-            self.subs[to_remove] = ''
+            to_omit = directive.get_sub(from_func)
+            self.to_sub[to_omit] = ''
