@@ -1,13 +1,13 @@
 
-# std libs
+# std
 import re
 import textwrap as txw
 from pathlib import Path
 
-# third-party libs
+# third-party
 import pytest
 
-# local libs
+# local
 import docsplice as doc
 
 
@@ -143,7 +143,7 @@ class Brackets:
             length of 2.
         """
 
-    def match(self, string, return_index=True, must_close=False):
+    def match(self, string, indexed=True, must_close=False):
         """
         Summary omitted for brevity.
 
@@ -184,7 +184,7 @@ class Brackets:
 
 
 @doc.splice(Brackets.match,  {'Parameters[pair] as brackets': Brackets})
-def match(string, brackets, return_index=True, must_close=False):
+def match(string, brackets, indexed=True, must_close=False):
     pass
 
 #

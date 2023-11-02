@@ -2,12 +2,15 @@
 Docstring splicing and fstring-like substitutions.
 """
 
-from collections import defaultdict
+# std
 import re
 import inspect
-import warnings as wrn
-from numpydoc.docscrape import NumpyDocString
 import logging
+from warnings import warn
+from collections import defaultdict
+
+# third-party
+from numpydoc.docscrape import NumpyDocString
 
 # module level logger
 logging.basicConfig()
@@ -79,6 +82,7 @@ def indented(lines, indent=TAB):
 def format_param(name, kind, descr, indent=TAB):
     return indented([' : '.join((name, kind))] + descr, indent)
 
+
 def get_param_dict(doc):
     return {p.name: p for p in doc['Parameters']}
 
@@ -104,19 +108,18 @@ class Directive:
     `NumpyDocString` of the `from_func`
     """
 
-    regex = re.compile(
-        r"""(?xm)
-        ^(?P<indent>[%s\ ]*)
-        (?P<directive>
-            \{
-                (?i:(?P<section>[a-z]+))
-                (\[(?P<key>\w+)\])?
-                (\.(?P<attr>\w+))?
-                (\s+as\s+(?P<rename>\w+))?
-                (\s*=\s*(?P<default>[^}]+))?
-            \}
-        )
-        """ % '\t')
+    regex = re.compile('''(?xm)
+            ^(?P<indent>[\t ]*)''' r'''
+            (?P<directive>
+                \{
+                    (?i:(?P<section>[a-z]+))
+                    (\[(?P<key>\w+)\])?
+                    (\.(?P<attr>\w+))?
+                    (\s+as\s+(?P<rename>\w+))?
+                    (\s*=\s*(?P<default>[^}]+))?
+                \}
+            )
+        ''')
 
     # Attributes
     directive: str
@@ -151,11 +154,11 @@ class Directive:
             raise ValueError(f'{self.section} is not a valid section name.')
 
         if key and (section not in LISTED_SECTIONS):
-            wrn.warn(
+            warn(
                 f'{section!r} section is not a itemized section, yet item '
                 f'{key!r} has been requested.')
             if attr:
-                wrn.warn(
+                warn(
                     f'Attribute {attr!r} of item {key!r} in section '
                     f'{section!r} does not exist')
 
@@ -177,7 +180,7 @@ class Directive:
         indent, section, key, attr, rename, default = self
         parsed_doc = docStringCache[func]
         if section not in parsed_doc:
-            wrn.warn(f'Invalid docstring section {section!r}')
+            warn(f'Invalid docstring section {section!r}')
             return directive
 
         part = parsed_doc[section]
@@ -190,14 +193,14 @@ class Directive:
 
         has_items = (section in LISTED_SECTIONS)
         if not has_items:
-            wrn.warn(f'{section!r} section has no items. Could not lookup '
-                     f'item {key!r}.')
+            warn(f'{section!r} section has no items. Could not lookup '
+                 f'item {key!r}.')
             return directive
 
         # check if item (parameter) available
         names = next(zip(*part))
         if key not in names:
-            wrn.warn(f'Could not find {key!r} in section {section!r}')
+            warn(f'Could not find {key!r} in section {section!r}')
             return directive
 
         # get item from list of (Parameters/.../)
@@ -208,7 +211,7 @@ class Directive:
                 params = inspect.signature(func).parameters
                 par = params[key]
                 if par.default is par.empty:
-                    wrn.warn(
+                    warn(
                         f'Not replacing default value for {section}[{key}]: '
                         f'Function parameter {key!r} has no default value.'
                     )
@@ -227,7 +230,7 @@ class Directive:
             # get the attribute (decr)
             return indented(getattr(item, attr), indent)
 
-        wrn.warn(f'{section}[{key}] has no attribute {attr!r}.')
+        warn(f'{section}[{key}] has no attribute {attr!r}.')
         return directive
 
 
@@ -239,8 +242,12 @@ def get_subs(docstring, from_func):
         # Find directives in the docstring of the decorated function
         # and, substitute the replacement texts
         for directive in Directive.iter(docstring):
-            subs[str(directive)] = \
-                directive.get_sub(from_func)
+            try:
+                subs[str(directive)] = \
+                    directive.get_sub(from_func)
+            except Exception as err:
+                raise type(err)(f'Invalid docsplice directive in {from_func}:'
+                                f'\n{err}') from None
     return subs
 
 
@@ -372,8 +379,8 @@ class splice:
                     new = sub(docstring, self.to_sub)
                     # TODO: do things in the order in which arguments were passed
                     if new == docstring:
-                        wrn.warn('Docstring for function {func} identical '
-                                 'after substitution')
+                        warn('Docstring for function {func} identical '
+                             'after substitution')
                     docstring = new
                 # elif 'Parameters' in self.directives:
                 #     # no directives found in docstring. Fill parameters automatically
@@ -399,8 +406,8 @@ class splice:
             for pname in func.__code__.co_varnames:
                 if pname not in dest and pname in source:
                     self.directives[f'Parameters[{pname}]'] = from_func
-            
-            #print(self.directives)
+
+            # print(self.directives)
 
         # parse directives and insert new text
         doc = self.insert(func, doc)
@@ -415,7 +422,7 @@ class splice:
             # function / class definition.
             func.__doc__ = str(doc)
         else:
-            wrn.warn(
+            warn(
                 f'{self.__class__.__name__} did not alter docstring for {func}.'
             )
 
@@ -437,7 +444,7 @@ class splice:
             # get parsed docstring (NumpyDocString) from cache (or create it
             # if needed)
             if ifunc.__doc__ is None:
-                wrn.warn(f'No docstring available for {ifunc}. Skipping.')
+                warn(f'No docstring available for {ifunc}. Skipping.')
                 continue
 
             directive = Directive.parse(directive)
@@ -465,7 +472,7 @@ class splice:
                 # unintentional
                 for line in doc[section]:
                     if line:
-                        wrn.warn(f'You are overwriting the {section} section.')
+                        warn(f'You are overwriting the {section} section.')
                         break
                 doc[section] = new.splitlines()
         return doc

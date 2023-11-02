@@ -15,9 +15,9 @@ convenient way using a functional decorator. This enables you to more easily
 create consistent documentation for your API without needing to duplicate
 docstring sections for functions that have the same parameter descriptions or
 other related content. This will ease the maintenance burden for your package
-documentation since the content of your function or class documentation  
-reside in a single location in the source code, instead of being duplicated 
-within each function body.
+documentation since the content of your function or class documentation reside
+in a single location in the source code, instead of being duplicated within each
+function body.
 
 
 # Install
