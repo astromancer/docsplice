@@ -1,5 +1,5 @@
 more_itertools
 numpy
 numpydoc
-pytest
+loguru
 git+https://github.com/astromancer/recipes
